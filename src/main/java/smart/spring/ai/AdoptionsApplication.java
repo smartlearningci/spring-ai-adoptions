@@ -1,29 +1,38 @@
 package smart.spring.ai;
 
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.context.annotation.Bean;
+
+
+import javax.sql.DataSource;
+
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.ai.chat.memory.repository.jdbc.JdbcChatMemoryRepository;
+
+import org.springframework.ai.chat.client.advisor.PromptChatMemoryAdvisor;
 
 @SpringBootApplication
 public class AdoptionsApplication {
-  public static void main(String[] args) { SpringApplication.run(AdoptionsApplication.class, args); }
-}
-
-@Controller
-@ResponseBody
-class AdoptionsController {
-
-  private final ChatClient ai;
-
-  AdoptionsController(ChatClient.Builder ai) {
-    this.ai = ai.build();
+  public static void main(String[] args) {
+    SpringApplication.run(AdoptionsApplication.class, args);
   }
 
-  @GetMapping("/{user}/assistant")
-  String ask(@PathVariable String user, @RequestParam String question) {
-    return ai.prompt().user(question).call().content();
+  @Bean
+  PromptChatMemoryAdvisor promptChatMemoryAdvisor(DataSource ds) {
+    // Se preferires, podes @Autowired o JdbcChatMemoryRepository diretamente
+    JdbcChatMemoryRepository repo =
+        JdbcChatMemoryRepository.builder().dataSource(ds).build();
+
+    ChatMemory mem = MessageWindowChatMemory
+        .builder()
+        .chatMemoryRepository(repo)
+        .maxMessages(10)
+        .build();
+
+    return PromptChatMemoryAdvisor.builder(mem).build();
   }
+
+ 
 }

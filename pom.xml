@@ -18,18 +18,19 @@
   <description>First AI project with Spring</description>
 
   <properties>
-    <!-- Compila com JDK 24 instalado -->
+    <!-- Compilas com JDK 24; bytecode alvo 23 para compatibilidade -->
     <java.version>24</java.version>
-    <!-- Gera bytecode para Java 23 (mais compatível). Se quiseres alvo 24, troca para 24. -->
     <maven.compiler.release>23</maven.compiler.release>
 
     <!-- Spring AI BOM -->
     <spring-ai.version>1.1.0-M3</spring-ai.version>
-  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- Encoding (evita problemas de resources) -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
   </properties>
 
-  <!-- BOM do Spring AI -->
+  <!-- BOM do Spring AI: fixa versões dos starters -->
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -49,6 +50,11 @@
       <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
     <dependency>
+	  <groupId>org.springframework.boot</groupId>
+	  <artifactId>spring-boot-starter-webflux</artifactId>
+	</dependency>
+	
+    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
@@ -62,22 +68,10 @@
       <scope>runtime</scope>
     </dependency>
 
-    <!-- MODELOS (usa um deles no application.properties) -->
-    <!-- 1) Servidor local OpenAI-compat (/v1/*) -->
-    <dependency>
-      <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-starter-model-openai</artifactId>
-    </dependency>
-    <!-- 2) Ollama local (11434) -->
+    <!-- LLM via Ollama (chat + embeddings) -->
     <dependency>
       <groupId>org.springframework.ai</groupId>
       <artifactId>spring-ai-starter-model-ollama</artifactId>
-    </dependency>
-
-    <!-- Embeddings com PostgresML -->
-    <dependency>
-      <groupId>org.springframework.ai</groupId>
-      <artifactId>spring-ai-starter-model-postgresml-embedding</artifactId>
     </dependency>
 
     <!-- Vector Store PGVector -->
@@ -108,29 +102,13 @@
 
   <build>
     <resources>
-    <!-- Recursos padrão SEM filtering -->
-    <resource>
-      <directory>src/main/resources</directory>
-      <filtering>false</filtering>
-      <includes>
-        <include>**/*</include>
-      </includes>
-      <!-- opcional: se quiseres garantir explicitamente que estes nunca são filtrados -->
-      <excludes>
-        <exclude>application*.properties</exclude>
-        <exclude>application*.yml</exclude>
-        <exclude>application*.yaml</exclude>
-      </excludes>
-    </resource>
+      <!-- Desativa filtering nos resources (o Spring já resolve ${...} em runtime) -->
+      <resource>
+        <directory>src/main/resources</directory>
+        <filtering>false</filtering>
+      </resource>
+    </resources>
 
-    <!-- Se precisares MESMO de filtering noutros ficheiros, cria outro bloco: -->
-    <!--
-    <resource>
-      <directory>src/main/filtered-resources</directory>
-      <filtering>true</filtering>
-    </resource>
-    -->
-  </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -139,22 +117,23 @@
           <release>${maven.compiler.release}</release>
         </configuration>
       </plugin>
-    <plugin>
-      <groupId>org.apache.maven.plugins</groupId>
-      <artifactId>maven-resources-plugin</artifactId>
-      <configuration>
-        <encoding>UTF-8</encoding>
-        <!-- para evitar substituir ${...} em qualquer caso -->
-        <useDefaultDelimiters>true</useDefaultDelimiters>
-      </configuration>
-    </plugin>
+
+      <!-- Evita substituição acidental de placeholders em resources -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-resources-plugin</artifactId>
+        <configuration>
+          <encoding>UTF-8</encoding>
+          <useDefaultDelimiters>true</useDefaultDelimiters>
+        </configuration>
+      </plugin>
 
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
       </plugin>
 
-      <!-- (opcional) nativo com GraalVM -->
+      <!-- (opcional) build nativo com GraalVM -->
       <plugin>
         <groupId>org.graalvm.buildtools</groupId>
         <artifactId>native-maven-plugin</artifactId>
